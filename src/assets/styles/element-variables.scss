@@ -1,0 +1,20 @@
+@import '@/assets/styles/variable.scss';
+
+.el-menu-item.is-active{
+    color: #2783FC;
+}
+.el-aside{
+    width: unset;
+}
+.el-header{
+    padding: 20px 24px;
+}
+.el-menu-item-group__title{
+    padding: 0;
+}
+main[class='el-main']{
+    overflow: hidden;
+    padding: 0 !important;
+    margin-left: -14px;
+    // height: calc(100% - $topHeight);
+}

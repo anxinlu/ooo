@@ -1,0 +1,42 @@
+.layout__header{
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 100%;
+    margin-left: 24px;
+    font-family: PingFang SC-Medium, PingFang SC;
+    &__title{
+        font-size: 14px;
+        font-weight: 600;
+        color: #2783FC;
+    }
+    &__operators{
+        display: flex;
+        align-items: center;
+        &__user{
+            display: flex;
+            align-items: center;
+            margin-left: 50px;
+            cursor: pointer;
+            &__icon{
+                width: 24px;
+                height: 24px;
+                background: #E9F3FF;
+                border-radius: 50%;
+                display: flex;
+                margin-right: 8px;
+                justify-content: center;
+                align-items: center;
+            }
+            &__select{
+                color: #2783FC;
+                margin-right: 24px;
+                display: flex;
+                align-items: center;
+            }
+        }
+        &__userbook{
+            cursor: pointer;
+        }
+    }
+}

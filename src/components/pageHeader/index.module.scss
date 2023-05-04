@@ -1,0 +1,13 @@
+@import '@/assets/styles/variable.scss';
+.pageTitle{
+    display: flex;
+    align-items: center;
+    height: $pageTitleHeight;
+    &__title{
+        padding-left: 8px;
+        font-size: 20px;
+        font-family: PingFang SC-Medium, PingFang SC;
+        font-weight: 500;
+        color: #141414;
+    }
+}
