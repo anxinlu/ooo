@@ -73,6 +73,7 @@ $toolMarginBottom:20px;
         }
     }
     &__graph{
+        position: absolute;
         background-color: #fafafa;
         padding: 0 20px;
         padding-top: $margin;
