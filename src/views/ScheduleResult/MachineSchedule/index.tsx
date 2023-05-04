@@ -301,6 +301,8 @@ const useScheduleGraph = () => {
         }
 
         let end = endTime.getTime() + dragOffsetTime
+
+        //! 这里的endTime和startTime需要维护 需要修改为响应式的值
         const timeStamp = end - startTime.getTime()
         const totalTime = endTime.getTime() - startTime.getTime()
         const scaleRatio = totalTime / timeStamp
