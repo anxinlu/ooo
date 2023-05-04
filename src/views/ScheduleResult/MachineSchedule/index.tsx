@@ -1,10 +1,11 @@
 import PageHeader from "@/components/pageHeader";
-import { computed, defineComponent, onBeforeMount, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, defineComponent, onBeforeMount, onBeforeUnmount, onMounted, ref, watch} from "vue";
 import styles from './index.module.scss'
 import axios from 'axios'
 import { getMonthDay, getTime } from '@/utils/date'
 import { GraphData } from "./mock/graph";
 import type { EqpHandleItem, EqpItem, GraphDataType } from "./types";
+
 
 /** 从后端获取到第一个被机台处理的lot的开始时间 */
 const startTime = new Date()
@@ -159,7 +160,11 @@ const useScheduleGraph = () => {
     /** 控制拖拽的线条是否出现 */
     const timeLineShow = ref<boolean>(false)
 
+    /** 点击拖拽时时间刻度的引用 */
     const timelineRef = ref<HTMLElement>()
+
+    /** 拖拽后的偏移量 */
+    const dragOffsetX = ref<number>(0)
 
 
     const hoverIndex = ref<number>()
@@ -257,7 +262,7 @@ const useScheduleGraph = () => {
 
 
     const graphScheduleJsx = computed(()=> {
-        return scheduleGraphData.value.map((eqpItem:EqpItem, index) => {
+        return scheduleGraphData.value.map((eqpItem:EqpItem, index:number) => {
             return <div class={styles.eqpitem} onMouseover={(event:MouseEvent) => {
                 eqpItemouseOverHandler(event, index)
             }}
@@ -282,6 +287,28 @@ const useScheduleGraph = () => {
             </div>
         })
     })
+
+    watch(() => dragOffsetX.value,(val)=> {
+        let dragOffsetTime = 0
+        // 往左  endTime--
+        if(val < 0){
+           dragOffsetTime =  val / unitWidth.value!
+           console.log('dragOffsetTime', dragOffsetTime)
+        // 往右  endTime++
+        }else{
+            dragOffsetTime =  val / unitWidth.value!
+            console.log('dragOffsetTime', dragOffsetTime)
+        }
+
+        let end = endTime.getTime() + dragOffsetTime
+        const timeStamp = end - startTime.getTime()
+        const totalTime = endTime.getTime() - startTime.getTime()
+        const scaleRatio = totalTime / timeStamp
+        const originRatio = startTime.getTime() / totalTime * 100
+        graphContentRef.value?.style.setProperty('transform-origin',`${0}% center`)
+        graphContentRef.value?.style.setProperty('transform',`scaleX(${scaleRatio})`)
+    })
+
     
     /** 画布展示区域的拖拽事件 */
     const graphContentMouseDownHandler = (event:MouseEvent) => {
@@ -293,18 +320,17 @@ const useScheduleGraph = () => {
         // timelineRef.value?.style.setProperty('--timelineLeft', `${originClientX}px`)
         console.log('originClientX', originClientX)
         console.log('graphLeft', graphLeft)
-        document.onmousemove = function (e:MouseEvent) {
+        graphContentRef.value!.onmousemove = function (e:MouseEvent) {
             const curClientX = e.clientX
-
             timeLineShow.value = true //出现时间刻度
             timelineRef.value?.style.setProperty('--timelineLeft', `${curClientX - graphLeft!}px`)
-            console.log('curClientX', curClientX)
+            dragOffsetX.value = curClientX - originClientX
         }
 
-        document.onmouseup = function (e:MouseEvent) {
+        document!.onmouseup = function (e:MouseEvent) {
             console.log('松手')
             timeLineShow.value = false //去掉时间刻度
-            document.onmousemove = null
+            graphContentRef.value!.onmousemove = null
             document.onmouseup = null
         }
     }
