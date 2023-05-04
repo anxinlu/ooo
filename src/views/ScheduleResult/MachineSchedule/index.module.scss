@@ -94,6 +94,7 @@ $toolMarginBottom:20px;
         }
         &__content{
             width: 100%;
+            position: relative;
             &__lot{
                 display: flex;
                 flex-direction: column;
@@ -127,12 +128,13 @@ $toolMarginBottom:20px;
         width: var(--timeSpanWidth);
         display: inline-flex;
         flex-direction: column;
-        align-items: flex-start;
+        align-items: center;
         justify-content: space-between;
         height: 100%;
         padding: 16px 0px;
         padding-top: 12px;
         position: relative;
+        transform: translateX(-50%);
         &__monthDay{
             font-size: 14px;
             font-family: PingFang SC-Regular, PingFang SC;
@@ -194,4 +196,13 @@ $toolMarginBottom:20px;
         height: 45px;
         align-items: center;
     }
+}
+
+.timeline{
+    position: absolute;
+    height: 100%;
+    left: var(--timelineLeft);
+    top: calc(200px - 82px);
+    background-color: #D84D51;
+    width: 1px;
 }

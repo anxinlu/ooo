@@ -156,6 +156,11 @@ const useScheduleGraph = () => {
     /** 画布resize清除事件 */
     const graphResizeClear = ref<Function>()
 
+    /** 控制拖拽的线条是否出现 */
+    const timeLineShow = ref<boolean>(false)
+
+    const timelineRef = ref<HTMLElement>()
+
 
     const hoverIndex = ref<number>()
 
@@ -285,17 +290,22 @@ const useScheduleGraph = () => {
         const graphRect = graphRef.value?.getBoundingClientRect()
         const graphLeft = graphRect?.left
         const originClientX = event.clientX;
+        // timelineRef.value?.style.setProperty('--timelineLeft', `${originClientX}px`)
         console.log('originClientX', originClientX)
         console.log('graphLeft', graphLeft)
-        graphContentRef.value!.onmousemove = function (e:MouseEvent) {
+        document.onmousemove = function (e:MouseEvent) {
             const curClientX = e.clientX
+
+            timeLineShow.value = true //出现时间刻度
+            timelineRef.value?.style.setProperty('--timelineLeft', `${curClientX - graphLeft!}px`)
             console.log('curClientX', curClientX)
         }
 
-        graphContentRef.value!.onmouseup = function (e:MouseEvent) {
+        document.onmouseup = function (e:MouseEvent) {
             console.log('松手')
-            graphContentRef.value!.onmousemove = null
-            graphContentRef.value!.onmouseup = null
+            timeLineShow.value = false //去掉时间刻度
+            document.onmousemove = null
+            document.onmouseup = null
         }
     }
 
@@ -315,7 +325,9 @@ const useScheduleGraph = () => {
         graphScheduleJsx,
         graphEqpTypeJsx,
         graphContentMouseDownHandler,
-        graphContentRef
+        graphContentRef,
+        timeLineShow,
+        timelineRef
     }
 
 }
@@ -337,7 +349,9 @@ export default defineComponent({
             graphContentRef,
             graphScheduleJsx,
             graphEqpTypeJsx,
-            graphContentMouseDownHandler
+            graphContentMouseDownHandler,
+            timeLineShow,
+            timelineRef
         } = useScheduleGraph()
 
         const clearRulerResize = ref<Function>()
@@ -381,6 +395,8 @@ export default defineComponent({
             graphScheduleJsx,
             graphEqpTypeJsx,
             graphContentRef,
+            timeLineShow,
+            timelineRef,
             graphContentMouseDownHandler
        }
     },
@@ -390,7 +406,7 @@ export default defineComponent({
              timeSpans, 
              graphScheduleJsx, 
              graphEqpTypeJsx, 
-             graphContentRef,
+             timeLineShow,
              graphContentMouseDownHandler
         } = this
 
@@ -449,7 +465,7 @@ export default defineComponent({
                     </div>
                </div>
 
-               
+               {timeLineShow && <div class={styles.timeline} ref="timelineRef"></div>}
             </div>
         )
     }
