@@ -7,5 +7,5 @@ export const getMonthDay = (date:Date) => {
 export const getTime = (date:Date) => {
     const _hours = date.getHours()
     const _minutes = date.getMinutes()
-    return _minutes > 10 ? `${_hours}:${_minutes}` : `${_hours}:0${_minutes}`
+    return _minutes >= 10 ? `${_hours}:${_minutes}` : `${_hours}:0${_minutes}`
 }

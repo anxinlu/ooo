@@ -3,6 +3,8 @@
 $toolMarginBottom:20px;
 
 .root{
+    transform: translate3d(0,0,0);
+    user-select: none;
     &__headWrapper{
         height: 200px;
         padding-top: 20px;
@@ -81,6 +83,7 @@ $toolMarginBottom:20px;
         height: calc(100% - 200px);
         overflow: auto;
         display: flex;
+        position: absolute;
         &__typeTitle{
             width:calc(var(--paddingLeft) - 20px);
             height: 100%;
@@ -93,6 +96,8 @@ $toolMarginBottom:20px;
         }
         &__content{
             width: 100%;
+            // transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            margin-left: var(--effectMarginLeft);
             &__lot{
                 display: flex;
                 flex-direction: column;
@@ -102,11 +107,21 @@ $toolMarginBottom:20px;
                     font-weight: 400;
                     color: #b8b8b8;
                 }
+                span[class^='scaleword']{
+                    height: 45px;
+                    line-height: 45px;
+                    text-shadow: 0 0 #b8b8b8;
+                }
             }
 
             &__lotsetup{
                 display: flex;
                 align-items: center;
+                span[class^='scaleword']{
+                    height: 45px;
+                    line-height: 45px;
+                    text-shadow: 0 0 #529CFD;
+                }
             }
         }
     }
@@ -122,6 +137,7 @@ $toolMarginBottom:20px;
     border-radius: 4px;
     box-shadow: 5px 3px 6px rgba(0,0,0,0.08);
     border-top: 1px solid #F1F1F1;
+    display: flex;
     &__timeSpan{
         width: var(--timeSpanWidth);
         display: inline-flex;
@@ -137,12 +153,14 @@ $toolMarginBottom:20px;
             font-family: PingFang SC-Regular, PingFang SC;
             font-weight: 400;
             color: #678E9F;
+            transform: translateX(-50%);
         }
         &__time{
             font-size: 16px;
             font-family: PingFang SC-Medium, PingFang SC;
             font-weight: 500;
             color: #141414;
+            transform: translateX(-50%);
         }
         &__mark{
             position: absolute;
@@ -161,24 +179,36 @@ $toolMarginBottom:20px;
     align-items: center;
     &__setup{
         background: #E9F3FF;
-        border-right: 5px solid #fafafa;
         border-radius: 8px;
         font-size: 16px;
         font-family: PingFang SC-Semibold, PingFang SC;
         font-weight: 600;
         color: #529CFD;
+        justify-content: center;
+        svg{
+            margin-right: 8px;
+        }
+        &:nth-child(1){
+            border-left: none;
+        }
+        border-right: 2px solid #fafafa;
         span {
-            margin-left: 16px;
             overflow: hidden;
             white-space: nowrap;
             text-overflow: ellipsis;
+            justify-content: center;
         }
     }
     &__lot{
         background: #F1F1F1;
+        // background: #F56C6C;
         border-radius: 8px;
-        border-right: 5px solid #fafafa;
+        &:nth-child(1){
+            border-left: none;
+        }
+        border-right: 2px solid #fafafa;
         span{
+            // color: white;
             margin-left: 8px;
             overflow: hidden;
             white-space: nowrap;
@@ -194,3 +224,12 @@ $toolMarginBottom:20px;
         align-items: center;
     }
 }
+.timeline{
+    position: absolute;
+    height: 100%;
+    left: var(--timelineLeft);
+    top: calc(200px - 82px);
+    background-color: #D84D51;
+    width: 1px;
+}
+

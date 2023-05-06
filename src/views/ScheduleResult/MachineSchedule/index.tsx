@@ -1,5 +1,5 @@
 import PageHeader from "@/components/pageHeader";
-import { computed, defineComponent, onBeforeMount, onBeforeUnmount, onMounted, ref } from "vue";
+import { computed, defineComponent, onBeforeMount, onMounted, ref, watch, type Ref} from "vue";
 import styles from './index.module.scss'
 import axios from 'axios'
 import { getMonthDay, getTime } from '@/utils/date'
@@ -9,8 +9,10 @@ import type { EqpHandleItem, EqpItem, GraphDataType } from "./types";
 /** 从后端获取到第一个被机台处理的lot的开始时间 */
 const startTime = new Date()
 
+
+
 /** 时间刻度hooks */
-const useTimeRuler = () => {
+const useTimeRuler = (scaleRatio:Ref<number>, scrollXOffeset:Ref<number>, unitWidth:Ref<number>) => {
     /** 时间刻度尺左侧padding */
     const paddingLeft = 119
 
@@ -33,11 +35,77 @@ const useTimeRuler = () => {
     /** 刻度尺当前总宽度 */
     const timeAreaWidth = ref<number>()
 
-    const initTimeSpanWidth = () => {
-        const rulerRect = timeRulerRef.value?.getBoundingClientRect();
-        const rulerWidth =  rulerRect?.width as number - paddingLeft
-        timeAreaWidth.value = rulerWidth
-        spanWidth.value = rulerWidth / hourBuffer.value
+    /** 刻度尺初始化时候的宽度 */
+    const initialRulerWidth = ref<number>()
+
+    const scaleWord = (wordScale:number) => {
+        const wordSpanNodes = timeRulerRef.value?.querySelectorAll('.scaleword') as NodeListOf<Element>
+        const wordSpanArr = Array.from(wordSpanNodes)
+        wordSpanArr.forEach(item => {
+            const wordSpan = item as HTMLSpanElement
+            const classArr = Array.from(wordSpan.classList)
+            if(classArr.includes('scaletime')){
+                wordSpan && wordSpan.style.setProperty('transform-origin', `0 center`);
+                wordSpan && wordSpan.style.setProperty('transform', `scaleX(${wordScale}) translate3d(0,0,0) translateX(-50%)`);
+            }else{
+                wordSpan && wordSpan.style.setProperty('transform-origin', `0 center`);
+                wordSpan && wordSpan.style.setProperty('transform', `scaleX(${wordScale}) translate3d(0,0,0)`);
+            }
+        })
+    }
+
+
+    /** 比例放大后需要细化刻度 */
+    const effectTimeRuler = (ratio:number) => {
+        const time = startTime.getTime()
+        const tempArr = new Array(hourBuffer.value).fill(time)
+        const finalTimeArr = [] as Array<Date>
+        // 放大倍数向下取证 给刻度精分多少块 1的时候不需要中间多出刻度
+        const timeBlockNum = Math.floor(ratio)
+
+        console.log('timeBlockNum', timeBlockNum)
+        // 精分后每一块代表的时间
+        // const timeBlock = msBuffer(1) / ratio
+
+        // tempArr.forEach((timeItem, index) => {
+        //    const date = new Date(timeItem + msBuffer(index))
+        //    let blockDate
+        //    if(tempArr.length - 1 === index) {
+        //         blockDate = new Date(date.getTime())
+        //         finalTimeArr.push(blockDate)
+        //    }else{
+        //        for(let i=0;i<= timeBlockNum;i++){
+        //             blockDate = new Date(date.getTime() + timeBlock * i)
+        //             finalTimeArr.push(blockDate)
+        //         }
+        //    }
+        // })
+        
+
+        timeRulerRef.value?.style.setProperty('--timeSpanWidth', `${spanWidth.value}px`)
+
+        // rulerTimeArray.value! = finalTimeArr
+
+        // refreshTimeSpanWidth()
+
+        console.log('length', rulerTimeArray.value?.length)
+    }
+
+    watch(()=> [scaleRatio.value,scrollXOffeset.value], ([ratio, scrollXOffeset]) =>{
+        timeRulerRef.value?.style.setProperty('transform-origin',`119px center`)
+        timeRulerRef.value?.
+        style.setProperty('transform', `scaleX(${ratio}) translateZ(0) translate3d(0,0,0) translateX(-${scrollXOffeset / ratio}px)`)
+        
+        scaleWord(1 / ratio)
+        effectTimeRuler(ratio)
+    })
+
+    
+    const refreshTimeSpanWidth = () => {
+        console.log('refreshTimeSpanWidth', unitWidth.value);
+        
+        spanWidth.value =  initialRulerWidth.value! / rulerTimeArray.value.length
+        // spanWidth.value = unitWidth.value * hourBuffer.value * 60 * 60 * 1000 / rulerTimeArray.value.length
         timeRulerRef.value?.style.setProperty('--timeSpanWidth', `${spanWidth.value}px`)
     }
 
@@ -45,7 +113,11 @@ const useTimeRuler = () => {
         if (!entrys || !entrys.length) {
             return
         }
-        initTimeSpanWidth()
+        const rulerRect = timeRulerRef.value?.getBoundingClientRect();
+        const rulerWidth =  (rulerRect?.width as number) / scaleRatio.value - paddingLeft
+        timeAreaWidth.value = rulerWidth
+        initialRulerWidth.value = rulerWidth
+        refreshTimeSpanWidth()
     }
 
     rulerResizeOb.value =  new ResizeObserver(rulerResizeCallback)
@@ -66,24 +138,29 @@ const useTimeRuler = () => {
     }
 
     const timeSpans = computed(() => {
-        return rulerTimeArray.value.map((item, index) => {
+        return rulerTimeArray.value.map((item) => {
             const monthDay = getMonthDay(item)
             const time = getTime(item)
             return (<span class={styles['timeRuler__timeSpan']}>
-                <span class={styles['timeRuler__timeSpan__monthDay']}>{monthDay}</span>
-                <span class={styles['timeRuler__timeSpan__time']}>{time}</span>
-                <span class={styles['timeRuler__timeSpan__mark']}>
-                    <svg-icon name="line" size="10"/>
-                </span>
-            </span>)
+                        <span class={[styles['timeRuler__timeSpan__monthDay'],'scaleword','scaletime']}>
+                            {monthDay}
+                        </span>
+                        <span class={[styles['timeRuler__timeSpan__time'],'scaleword','scaletime']}>
+                            {time}
+                        </span>
+                        <span class={[styles['timeRuler__timeSpan__mark'],'scaleword']}>
+                                <svg-icon name="line" size="10" width="1px"/>
+                        </span>
+                    </span>)
         })
     })
 
     const initTimeRulerSpanWidth = () => {
         const rulerRect = timeRulerRef.value?.getBoundingClientRect();
         const rulerWidth =  rulerRect?.width as number - paddingLeft
+        initialRulerWidth.value = rulerRect?.width as number - paddingLeft
         timeAreaWidth.value = rulerWidth
-        spanWidth.value = rulerWidth / hourBuffer.value
+        spanWidth.value =  initialRulerWidth.value / hourBuffer.value
         timeRulerRef.value?.style.setProperty('--timeSpanWidth', `${spanWidth.value}px`)
     }
 
@@ -100,7 +177,7 @@ const useTimeRuler = () => {
         }
     }
 
-
+    
     const rulerMounted = () => {
         initTimeArray()
         setRulerPaddingLeft()
@@ -121,7 +198,7 @@ const useTimeRuler = () => {
 }
 
 /** 画布hooks */
-const useScheduleGraph = () => {
+const useScheduleGraph = (scaleRatio:Ref<number>, scrollXOffeset:Ref<number>,unitWidth:Ref<number>) => {
     /** 画布距离左侧padding */
     const paddingLeft = 119
 
@@ -135,7 +212,7 @@ const useScheduleGraph = () => {
     const graphWidh = ref<number>()
 
     /** 画布的根据总时长计算得出单位时长映射的像素值 */
-    const unitWidth = ref<number>()
+    // const unitWidth = ref<number>()
 
     const scheduleGraphData = ref<GraphDataType>(GraphData)
 
@@ -156,8 +233,36 @@ const useScheduleGraph = () => {
     /** 画布resize清除事件 */
     const graphResizeClear = ref<Function>()
 
+    /** 控制拖拽的线条是否出现 */
+    const timeLineShow = ref<boolean>(false)
 
+    /** 点击拖拽时时间刻度的引用 */
+    const timelineRef = ref<HTMLElement>()
+
+    /** 拖拽后的偏移量 */
+    const dragOffsetX = ref<number>(0)
+
+    /** 维护移动的脚标 */
     const hoverIndex = ref<number>()
+
+     /** 拖拽过后的当前开始时间 */
+     const startTimeAfterDrag = ref<number>()
+
+     /** 拖拽过后的截止时间 */
+     const endTimeAfterDrag = ref<number>()
+
+     /** 拖拽过后的截止时间临时变量 */
+     const endTimeDragTemp = ref<number>()
+
+     /** 纵向滚动条导致出现的误差值 */
+     const effectMarginLeft = ref<string>()
+
+    const initDragTime = () => {
+        startTimeAfterDrag.value = startTime.getTime()
+        endTimeAfterDrag.value = endTime.getTime()
+        endTimeDragTemp.value = endTime.getTime()
+    }
+
 
     const rulerResizeCallback = (entrys:ResizeObserverEntry[]) => {
         if (!entrys || !entrys.length) {
@@ -206,24 +311,38 @@ const useScheduleGraph = () => {
             styles['eqpitem__lot']
     }
 
-    const getScheduleSpanRight = (handleItem:EqpHandleItem) => {
-        const offesetTime = endTime.getTime() - handleItem.endTime
-        const right = offesetTime * unitWidth.value!
-        return `${right}px`
+    const getScheduleSpanLeft = (handleItem:EqpHandleItem) => {
+        const offesetTime = handleItem.startTime - startTime.getTime()
+        const left = offesetTime * unitWidth.value!
+        return `${left}px`
     }
-
+  
+    
+    // let preHandleItem:EqpHandleItem
+    // const getScheduleSpanLeftRelative = (handleItem:EqpHandleItem, index:number) => {
+    //     let offsetTime = 0
+    //     if(index === 0){
+    //         offsetTime = handleItem.startTime - startTime.getTime()
+    //     } else {
+    //         offsetTime = handleItem.startTime - preHandleItem.endTime 
+    //     }
+    //     const offesetX = offsetTime * unitWidth.value!
+    //     preHandleItem = handleItem
+    //     console.log('offesetX', offesetX)
+    //      return `${offesetX}px`
+    // }
 
     const lotItem = (eqpItem:EqpItem, lotItem:EqpHandleItem) => {
         if(lotItem.setup){
             return <span class={styles['root__graph__content__lotsetup']}>
-                <svg-icon name="setup" size="16"/>
-                <span>
+                <span class='scaleword'><svg-icon name="setup" size="16" /></span>
+                <span class='scaleword'>
                     Set  up
                 </span>
             </span>
         }else{
             return <span class={styles['root__graph__content__lot']}>
-                     <span>{lotItem.lotId}</span>
+                     <span class='scaleword'>{lotItem.lotId}</span>
                    </span>
         }
     }
@@ -250,20 +369,20 @@ const useScheduleGraph = () => {
         hoverIndex.value = index
     }
 
-
+    
     const graphScheduleJsx = computed(()=> {
-        return scheduleGraphData.value.map((eqpItem:EqpItem, index) => {
+        return scheduleGraphData.value.map((eqpItem:EqpItem, index:number) => {
             return <div class={styles.eqpitem} onMouseover={(event:MouseEvent) => {
                 eqpItemouseOverHandler(event, index)
             }}
             onMouseleave={()=>{ hoverIndex.value = -1 }}
             >
                 { eqpItem.handleList.map((handleItem:EqpHandleItem, index:number) => {
-                    return (<span class={handleItemClass(handleItem)}
+                    return (<span class={[handleItemClass(handleItem),'pxs__lotItem']}
                             style={{
                                 position:'absolute',
+                                left:getScheduleSpanLeft(handleItem),
                                 width:getSpanWidth(handleItem),
-                                right:getScheduleSpanRight(handleItem)
                             }}
                         >
                                 {
@@ -277,37 +396,118 @@ const useScheduleGraph = () => {
             </div>
         })
     })
+
+    const ctrlScrollX = (scaleRatio:number) => {
+        // scrollWidth > clientWidth
+        const graph = graphContentRef.value as HTMLDivElement
+        const scrollWidth = graph.scrollWidth
+        const clientWidth = graph.clientWidth
+        if(scrollWidth > clientWidth){
+            graphRef.value?.style.setProperty('overflow-x','auto')
+        }
+        if(scaleRatio == 1){
+            graphRef.value?.style.setProperty('overflow-x','hidden')
+        }
+    }
+
+    /** 控制画布中lot节点文字的缩放比例 */
+    const scaleWord = (wordScale:number) => {
+        const wordSpanNodes = graphContentRef.value?.querySelectorAll('.scaleword') as NodeListOf<Element>
+        const wordSpanArr = Array.from(wordSpanNodes)
+        wordSpanArr.forEach(item => {
+            const wordSpan = item as HTMLSpanElement
+            wordSpan && wordSpan.style.setProperty('transform', `scaleX(${wordScale}) translate3d(0,0,0)`);
+        })
+    }
+    
+
+    watch(() => dragOffsetX.value,(val)=> {
+        let dragOffsetTime = 0
+        // 往左  endTime--  如果减少后小于startTime  重置为startTime
+        if(val < 0){
+           dragOffsetTime =  val / unitWidth.value!
+           const end = endTimeAfterDrag.value! + dragOffsetTime
+           endTimeDragTemp.value = end <= startTime.getTime() ? startTime.getTime() : end
+
+        // 往右  endTime++ 如果增加后大于endTime  重置为endTime
+        }else{
+            dragOffsetTime =  val / unitWidth.value!
+            const time = endTimeAfterDrag.value! + dragOffsetTime
+            endTimeDragTemp.value = time > endTime.getTime() ? endTime.getTime() : time
+        }
+        //! 这里的endTime和startTime需要维护 需要修改为响应式的值
+        const timeStamp = endTimeDragTemp.value - startTime.getTime()
+        const totalTime = endTime.getTime() - startTime.getTime()
+        let scale = totalTime / timeStamp 
+        //! 放大最大有点难看  这里控制到 1/n   hoverBuffer为分的时间区域块
+        scale = scale > hourBuffer.value ? hourBuffer.value : scale
+        scale = scale <= 1 ? 1 : scale
+        graphContentRef.value?.style.setProperty('transform-origin',`0 center`)
+        graphContentRef.value?.style.setProperty('transform',`scaleX(${scale}) translateZ(0) translate3d(0,0,0)`)
+        //! 文字反向放大 抵消失真
+        const wordScale = 1 / scale
+        scaleWord(wordScale)
+
+        ctrlScrollX(scale)
+        // 维护放大比例
+        scaleRatio.value = scale
+    })
+
     
     /** 画布展示区域的拖拽事件 */
     const graphContentMouseDownHandler = (event:MouseEvent) => {
         event.preventDefault()
-        console.log('鼠标按下了')
         const graphRect = graphRef.value?.getBoundingClientRect()
         const graphLeft = graphRect?.left
         const originClientX = event.clientX;
-        console.log('originClientX', originClientX)
-        console.log('graphLeft', graphLeft)
         graphContentRef.value!.onmousemove = function (e:MouseEvent) {
             const curClientX = e.clientX
-            console.log('curClientX', curClientX)
+            timeLineShow.value = true //出现时间刻度
+            timelineRef.value?.style.setProperty('--timelineLeft', `${curClientX - graphLeft!}px`)
+            dragOffsetX.value = curClientX - originClientX
         }
 
-        graphContentRef.value!.onmouseup = function (e:MouseEvent) {
-            console.log('松手')
+        document!.onmouseup = function (e:MouseEvent) {
+            endTimeAfterDrag.value = endTimeDragTemp.value
+            timeLineShow.value = false //去掉时间刻度
             graphContentRef.value!.onmousemove = null
-            graphContentRef.value!.onmouseup = null
+            document.onmouseup = null
         }
+    }
+
+    /** 消除由于出现纵向滚动条带来的padding导致布局不准确 */
+    const clearScorllMarginEffect = () => {
+        const graph = graphRef.value as HTMLDivElement
+        const scrollHeight = graph.scrollHeight
+        const clientHeight = graph.clientHeight
+        effectMarginLeft.value = scrollHeight > clientHeight ? '6px' : '0px'
+        //说明出现滚动条了
+        graphContentRef.value?.style.setProperty('--effectMarginLeft',`${effectMarginLeft.value}`)
+        graphRef.value?.style.setProperty('overflow-x','hidden')
+    }
+
+    const graphScrollX = () => {
+        const scrollLeft = graphRef.value?.scrollLeft as number
+        scrollXOffeset.value = scrollLeft
+    }
+
+    const listenGraphScrollX = () => {
+        graphRef.value?.addEventListener('scroll', graphScrollX)
     }
 
     onMounted(()=> {
         initUnitWidth()
         setGraphPaddingLeft()
         setGraphResizeClearHandler()
+        initDragTime()
+        clearScorllMarginEffect()
+        listenGraphScrollX()
     })
 
     onBeforeMount(() => {
         const graphResizeClearHandler = graphResizeClear.value
         graphResizeClearHandler && graphResizeClearHandler()
+        graphRef.value?.removeEventListener('scroll', graphScrollX)
     })
 
     return {
@@ -315,7 +515,9 @@ const useScheduleGraph = () => {
         graphScheduleJsx,
         graphEqpTypeJsx,
         graphContentMouseDownHandler,
-        graphContentRef
+        graphContentRef,
+        timeLineShow,
+        timelineRef
     }
 
 }
@@ -323,6 +525,14 @@ const useScheduleGraph = () => {
 export default defineComponent({
     name:'MachineSchedule',
     setup(){
+        /** 公用缩放的比例 */
+        const scaleRatio = ref<number>(1)
+
+        /** 公用x轴偏移量 */
+        const scrollXOffeset = ref<number>(0)
+
+        /** 画布的根据总时长计算得出单位时长映射的像素值 */
+        const unitWidth = ref<number>(0)
 
         const { 
             timeRulerRef, 
@@ -330,15 +540,17 @@ export default defineComponent({
             timeSpans,
             rulerMounted,
             registeRulerResize
-        } = useTimeRuler()
+        } = useTimeRuler(scaleRatio, scrollXOffeset, unitWidth)
 
         const {
             graphRef,
             graphContentRef,
             graphScheduleJsx,
             graphEqpTypeJsx,
-            graphContentMouseDownHandler
-        } = useScheduleGraph()
+            graphContentMouseDownHandler,
+            timeLineShow,
+            timelineRef
+        } = useScheduleGraph(scaleRatio, scrollXOffeset, unitWidth)
 
         const clearRulerResize = ref<Function>()
 
@@ -381,6 +593,8 @@ export default defineComponent({
             graphScheduleJsx,
             graphEqpTypeJsx,
             graphContentRef,
+            timeLineShow,
+            timelineRef,
             graphContentMouseDownHandler
        }
     },
@@ -390,7 +604,7 @@ export default defineComponent({
              timeSpans, 
              graphScheduleJsx, 
              graphEqpTypeJsx, 
-             graphContentRef,
+             timeLineShow,
              graphContentMouseDownHandler
         } = this
 
@@ -433,11 +647,11 @@ export default defineComponent({
                                     <svg-icon name="small" size="16"/>
                             </div>
                     </div>
-                    <div class={styles.timeRuler} ref="timeRulerRef">
-                        { timeSpans }
-                    </div>
                 </div>
 
+                <div class={styles.timeRuler} ref="timeRulerRef">
+                    { timeSpans }
+                </div>
                <div class={styles['root__graph']} ref="graphRef">
                     {/* 这里可以抽出去作为Schedule的结果组件 */}
                     <div class={styles['root__graph__typeTitle']}>
@@ -449,7 +663,7 @@ export default defineComponent({
                     </div>
                </div>
 
-               
+               {timeLineShow && <div class={styles.timeline} ref="timelineRef"></div>}
             </div>
         )
     }

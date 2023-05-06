@@ -25,16 +25,20 @@ export default defineComponent({
         type: String,
         default: ''
     },
+    width:{
+      type:String,
+      default: ''
+    }
   },
   setup(props) {
     const symbolId = computed(() => `#${props.prefix}-${props.name}`);
     return { symbolId };
   },
   render() {
-    const  { size, height } = this.$props
+    const  { size, height, width } = this.$props
     return (
       <svg aria-hidden="true" 
-      style={{width: `${size}px`, height: height ? `${height}px` : `${size}px`}} 
+      style={{width: width ? width : `${size}px`, height: height ? `${height}px` : `${size}px`}} 
       >
         <use href={this.symbolId}  fill={this.color}/>
       </svg>
