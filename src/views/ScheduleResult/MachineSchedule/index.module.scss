@@ -185,6 +185,8 @@ $toolMarginBottom:20px;
         font-weight: 600;
         color: #529CFD;
         justify-content: center;
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: translate3d(0, 0, 0);
         svg{
             margin-right: 8px;
         }
@@ -203,6 +205,9 @@ $toolMarginBottom:20px;
         background: #F1F1F1;
         // background: #F56C6C;
         border-radius: 8px;
+        transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        transform: translate3d(0, 0, 0);
+        
         &:nth-child(1){
             border-left: none;
         }

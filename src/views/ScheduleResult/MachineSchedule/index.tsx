@@ -473,7 +473,7 @@ const useScheduleGraph = (scaleRatio:Ref<number>, scrollXOffeset:Ref<number>,uni
         supportlineYRef.value?.style.setProperty('--supportlineYLeft', `${originClientX - graphLeft!}px`)
         supportlineXRef.value?.style.setProperty('--supportlineXTop', `${originClientY}px`)
 
-        const offsetX = (originClientX - graphLeft! - 119) < 0 ? 0 : (originClientX - graphLeft! - 119);
+        const offsetX = (originClientX - graphLeft! - 119) < 0 ? 0 : (originClientX - graphLeft! - 119 + scrollXOffeset.value);
 
         console.log('offsetX', offsetX ,graphLeft)
         const offsetTime = (offsetX / unitWidth.value) /  scaleRatio.value
