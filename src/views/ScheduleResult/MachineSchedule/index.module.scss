@@ -191,7 +191,7 @@ $toolMarginBottom:20px;
         &:nth-child(1){
             border-left: none;
         }
-        border-right: 2px solid #fafafa;
+        border-right: 1px solid #fafafa;
         span {
             overflow: hidden;
             white-space: nowrap;
@@ -206,7 +206,7 @@ $toolMarginBottom:20px;
         &:nth-child(1){
             border-left: none;
         }
-        border-right: 2px solid #fafafa;
+        border-right: 1px solid #fafafa;
         span{
             // color: white;
             margin-left: 8px;
@@ -233,3 +233,24 @@ $toolMarginBottom:20px;
     width: 1px;
 }
 
+.supportlineY{
+    position: absolute;
+    height: 100%;
+    top: calc(200px - calc(82px - 70px));
+    // background-color: #A1A1A1;
+    // left:var(--supportlineYLeft);
+    border-left: 1px dotted #a1a1a1;
+    transform:translateX(var(--supportlineYLeft)) translate3d(0,0,0);
+    width: 1px;
+}
+
+.supportlineX{
+    position: absolute;
+    height: 1px;
+    left: 119px;
+    // background-color: #A1A1A1;
+    border-top: 1px dotted #a1a1a1;
+    top:calc(var(--supportlineXTop) - 58px);
+    transform:translate3d(0,0,0);
+    width: 100%;
+}

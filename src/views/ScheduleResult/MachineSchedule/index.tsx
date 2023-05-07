@@ -63,50 +63,55 @@ const useTimeRuler = (scaleRatio:Ref<number>, scrollXOffeset:Ref<number>, unitWi
         // 放大倍数向下取证 给刻度精分多少块 1的时候不需要中间多出刻度
         const timeBlockNum = Math.floor(ratio)
 
-        console.log('timeBlockNum', timeBlockNum)
-        // 精分后每一块代表的时间
-        // const timeBlock = msBuffer(1) / ratio
+        // 精分后每一块代表的时间  timeBlock 分钟
+        const timeBlock = 60 / Math.floor(ratio)
+        
+        
+        // const offsetTime = (offsetX / unitWidth.value) /  scaleRatio.value
+        // const currentTime = startTime.getTime() + offsetTime
+        
+        // 距离startTime的bolckNum数目
 
-        // tempArr.forEach((timeItem, index) => {
-        //    const date = new Date(timeItem + msBuffer(index))
-        //    let blockDate
-        //    if(tempArr.length - 1 === index) {
-        //         blockDate = new Date(date.getTime())
-        //         finalTimeArr.push(blockDate)
-        //    }else{
-        //        for(let i=0;i<= timeBlockNum;i++){
-        //             blockDate = new Date(date.getTime() + timeBlock * i)
-        //             finalTimeArr.push(blockDate)
-        //         }
-        //    }
-        // })
+
+        tempArr.forEach((timeItem, index) => {
+            const date = new Date(timeItem + msBuffer(index))
+            for(let i=0;i< timeBlockNum;i++){
+                const blockDate = new Date(date.getTime() + timeBlock * i * 60 * 1000)
+                finalTimeArr.push(blockDate)
+            }
+        })
         
 
-        timeRulerRef.value?.style.setProperty('--timeSpanWidth', `${spanWidth.value}px`)
+        // timeRulerRef.value?.style.setProperty('--timeSpanWidth', `${spanWidth.value}px`)
 
-        // rulerTimeArray.value! = finalTimeArr
+        rulerTimeArray.value! = finalTimeArr
 
-        // refreshTimeSpanWidth()
-
-        console.log('length', rulerTimeArray.value?.length)
+        refreshTimeSpanWidth(false)
     }
 
-    watch(()=> [scaleRatio.value,scrollXOffeset.value], ([ratio, scrollXOffeset]) =>{
+    watch(()=> [scaleRatio.value,scrollXOffeset.value,unitWidth.value], ([ratio, scrollXOffeset]) =>{
+        scaleWord(1 / ratio)
+        effectTimeRuler(ratio)
+
         timeRulerRef.value?.style.setProperty('transform-origin',`119px center`)
         timeRulerRef.value?.
         style.setProperty('transform', `scaleX(${ratio}) translateZ(0) translate3d(0,0,0) translateX(-${scrollXOffeset / ratio}px)`)
         
-        scaleWord(1 / ratio)
-        effectTimeRuler(ratio)
+    })
+
+    watch(() => unitWidth.value,val => {
+        console.log('watch unitWidth', val * 60 * 60 * 1000);
+        
     })
 
     
-    const refreshTimeSpanWidth = () => {
-        console.log('refreshTimeSpanWidth', unitWidth.value);
+    const refreshTimeSpanWidth = (resizeRuler:boolean) => {
+        const oneHourWidth = resizeRuler ? 
+            unitWidth.value * 60 * 60 * 1000 * Math.floor(scaleRatio.value) 
+            : unitWidth.value * 60 * 60 * 1000
         
-        spanWidth.value =  initialRulerWidth.value! / rulerTimeArray.value.length
-        // spanWidth.value = unitWidth.value * hourBuffer.value * 60 * 60 * 1000 / rulerTimeArray.value.length
-        timeRulerRef.value?.style.setProperty('--timeSpanWidth', `${spanWidth.value}px`)
+        const unitBlockWidth = oneHourWidth / Math.floor(scaleRatio.value)
+        timeRulerRef.value?.style.setProperty('--timeSpanWidth', `${unitBlockWidth}px`)
     }
 
     const rulerResizeCallback = (entrys:ResizeObserverEntry[]) => {
@@ -117,13 +122,13 @@ const useTimeRuler = (scaleRatio:Ref<number>, scrollXOffeset:Ref<number>, unitWi
         const rulerWidth =  (rulerRect?.width as number) / scaleRatio.value - paddingLeft
         timeAreaWidth.value = rulerWidth
         initialRulerWidth.value = rulerWidth
-        refreshTimeSpanWidth()
+        refreshTimeSpanWidth(true)
     }
 
     rulerResizeOb.value =  new ResizeObserver(rulerResizeCallback)
 
     // bufferTime 换算为毫秒
-    const msBuffer = (hoverNum: number) => hoverNum * 60 * 60 * 1000
+    const msBuffer = (hourNum: number) => hourNum * 60 * 60 * 1000
 
     //  根据当前目标时间和buffer时间获取到截止时间
     const endTime = new Date(startTime.getTime() + msBuffer(hourBuffer.value))
@@ -239,6 +244,12 @@ const useScheduleGraph = (scaleRatio:Ref<number>, scrollXOffeset:Ref<number>,uni
     /** 点击拖拽时时间刻度的引用 */
     const timelineRef = ref<HTMLElement>()
 
+    /** 辅助线Y侧的dom引用 */
+    const supportlineYRef = ref<HTMLElement>()
+
+    /** 辅助线X侧的dom引用 */
+    const supportlineXRef = ref<HTMLElement>()
+
     /** 拖拽后的偏移量 */
     const dragOffsetX = ref<number>(0)
 
@@ -256,6 +267,12 @@ const useScheduleGraph = (scaleRatio:Ref<number>, scrollXOffeset:Ref<number>,uni
 
      /** 纵向滚动条导致出现的误差值 */
      const effectMarginLeft = ref<string>()
+
+     /** 辅助线上侧的时间 */
+     const hoverCurrentTime = ref<string>()
+
+     /** 辅助线是否显示标志位 */
+     const supportShow = ref<boolean>(false)
 
     const initDragTime = () => {
         startTimeAfterDrag.value = startTime.getTime()
@@ -292,6 +309,7 @@ const useScheduleGraph = (scaleRatio:Ref<number>, scrollXOffeset:Ref<number>,uni
        // 将画布对应的总时长折算为ms
        const totalBufferMS = msBuffer(hourBuffer.value)
        unitWidth.value = graphWidh.value / totalBufferMS
+       console.log('initUnitWidth', unitWidth.value * 60 * 60 * 1000)
     }
 
     const setGraphResizeClearHandler = () => {
@@ -316,21 +334,6 @@ const useScheduleGraph = (scaleRatio:Ref<number>, scrollXOffeset:Ref<number>,uni
         const left = offesetTime * unitWidth.value!
         return `${left}px`
     }
-  
-    
-    // let preHandleItem:EqpHandleItem
-    // const getScheduleSpanLeftRelative = (handleItem:EqpHandleItem, index:number) => {
-    //     let offsetTime = 0
-    //     if(index === 0){
-    //         offsetTime = handleItem.startTime - startTime.getTime()
-    //     } else {
-    //         offsetTime = handleItem.startTime - preHandleItem.endTime 
-    //     }
-    //     const offesetX = offsetTime * unitWidth.value!
-    //     preHandleItem = handleItem
-    //     console.log('offesetX', offesetX)
-    //      return `${offesetX}px`
-    // }
 
     const lotItem = (eqpItem:EqpItem, lotItem:EqpHandleItem) => {
         if(lotItem.setup){
@@ -453,6 +456,37 @@ const useScheduleGraph = (scaleRatio:Ref<number>, scrollXOffeset:Ref<number>,uni
         scaleRatio.value = scale
     })
 
+    /** 画布中鼠标移除事件 */
+    const graphContentMouseLeaveHandler = (event:MouseEvent) => {
+        supportShow.value = false
+    }
+
+    /** 画布中鼠标移动事件 */
+    const graphContentMouseMoveHandler = (event:MouseEvent) =>{
+        supportShow.value = true
+
+        const graphRect = graphRef.value?.getBoundingClientRect()
+        const graphLeft = graphRect?.left
+        const originClientX = event.clientX;
+        const originClientY = event.clientY
+
+        supportlineYRef.value?.style.setProperty('--supportlineYLeft', `${originClientX - graphLeft!}px`)
+        supportlineXRef.value?.style.setProperty('--supportlineXTop', `${originClientY}px`)
+
+        const offsetX = (originClientX - graphLeft! - 119) < 0 ? 0 : (originClientX - graphLeft! - 119);
+
+        console.log('offsetX', offsetX ,graphLeft)
+        const offsetTime = (offsetX / unitWidth.value) /  scaleRatio.value
+        // const oneMsWidth = unitWidth.value * Math.floor(scaleRatio.value) 
+        // const offsetTime = offsetX / oneMsWidth
+
+        const currentTime = startTime.getTime() + offsetTime
+
+        hoverCurrentTime.value = `${getTime(new Date(currentTime))}`
+
+        console.log(getMonthDay(new Date(currentTime)),getTime(new Date(currentTime)))
+    }
+
     
     /** 画布展示区域的拖拽事件 */
     const graphContentMouseDownHandler = (event:MouseEvent) => {
@@ -461,13 +495,14 @@ const useScheduleGraph = (scaleRatio:Ref<number>, scrollXOffeset:Ref<number>,uni
         const graphLeft = graphRect?.left
         const originClientX = event.clientX;
         graphContentRef.value!.onmousemove = function (e:MouseEvent) {
+            supportShow.value = false;
             const curClientX = e.clientX
             timeLineShow.value = true //出现时间刻度
             timelineRef.value?.style.setProperty('--timelineLeft', `${curClientX - graphLeft!}px`)
             dragOffsetX.value = curClientX - originClientX
         }
 
-        document!.onmouseup = function (e:MouseEvent) {
+        document.onmouseup = function (e:MouseEvent) {
             endTimeAfterDrag.value = endTimeDragTemp.value
             timeLineShow.value = false //去掉时间刻度
             graphContentRef.value!.onmousemove = null
@@ -487,6 +522,7 @@ const useScheduleGraph = (scaleRatio:Ref<number>, scrollXOffeset:Ref<number>,uni
     }
 
     const graphScrollX = () => {
+        supportShow.value = false
         const scrollLeft = graphRef.value?.scrollLeft as number
         scrollXOffeset.value = scrollLeft
     }
@@ -515,9 +551,15 @@ const useScheduleGraph = (scaleRatio:Ref<number>, scrollXOffeset:Ref<number>,uni
         graphScheduleJsx,
         graphEqpTypeJsx,
         graphContentMouseDownHandler,
+        graphContentMouseMoveHandler,
+        graphContentMouseLeaveHandler,
         graphContentRef,
         timeLineShow,
-        timelineRef
+        timelineRef,
+        supportlineYRef,
+        supportlineXRef,
+        hoverCurrentTime,
+        supportShow
     }
 
 }
@@ -548,8 +590,14 @@ export default defineComponent({
             graphScheduleJsx,
             graphEqpTypeJsx,
             graphContentMouseDownHandler,
+            graphContentMouseMoveHandler,
+            graphContentMouseLeaveHandler,
             timeLineShow,
-            timelineRef
+            hoverCurrentTime,
+            timelineRef,
+            supportlineYRef,
+            supportlineXRef,
+            supportShow
         } = useScheduleGraph(scaleRatio, scrollXOffeset, unitWidth)
 
         const clearRulerResize = ref<Function>()
@@ -595,7 +643,13 @@ export default defineComponent({
             graphContentRef,
             timeLineShow,
             timelineRef,
-            graphContentMouseDownHandler
+            supportlineYRef,
+            supportlineXRef,
+            hoverCurrentTime,
+            supportShow,
+            graphContentMouseDownHandler,
+            graphContentMouseMoveHandler,
+            graphContentMouseLeaveHandler
        }
     },
     render(){
@@ -605,7 +659,11 @@ export default defineComponent({
              graphScheduleJsx, 
              graphEqpTypeJsx, 
              timeLineShow,
-             graphContentMouseDownHandler
+             hoverCurrentTime,
+             supportShow,
+             graphContentMouseDownHandler,
+             graphContentMouseMoveHandler,
+             graphContentMouseLeaveHandler
         } = this
 
         return (
@@ -658,10 +716,24 @@ export default defineComponent({
                         {graphEqpTypeJsx}
                     </div>
                
-                    <div class={styles['root__graph__content']} ref="graphContentRef" onMousedown={graphContentMouseDownHandler} draggable={false}>
+                    <div class={styles['root__graph__content']} 
+                            ref="graphContentRef" 
+                            onMousedown={graphContentMouseDownHandler}
+                            onMousemove={graphContentMouseMoveHandler}
+                            onMouseleave={graphContentMouseLeaveHandler}
+                            >
                          {graphScheduleJsx}
                     </div>
                </div>
+
+                {/* 辅助线Y */}
+               {supportShow && <div class={styles.supportlineY} ref="supportlineYRef" style="pointer-events: none;">
+                    <span>{hoverCurrentTime}</span>
+               </div>}
+
+                {/* 辅助线X */}
+               {supportShow && <div class={styles.supportlineX} ref="supportlineXRef" style="pointer-events: none;">
+               </div>}
 
                {timeLineShow && <div class={styles.timeline} ref="timelineRef"></div>}
             </div>
